@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         IMAGE_NAME = "vision-ui-dashboard"
+        PORT = "${PORT ?: 8081}"
+        CONTAINER_NAME = "dashboard-${BUILD_NUMBER}"
     }
 
     stages {
@@ -29,16 +31,16 @@ pipeline {
 
         stage('Docker Build & Run') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
-                sh 'docker run -d -p 8081:80 --name dashboard $IMAGE_NAME || true'
+                sh """
+                docker build -t $IMAGE_NAME:${GIT_TAG_NAME ?: 'latest'} .
+                docker run -d -p $PORT:80 --name $CONTAINER_NAME $IMAGE_NAME:${GIT_TAG_NAME ?: 'latest'}
+                """
             }
         }
 
         stage('Smoke Test') {
             steps {
-                sh '''
-                curl -s http://localhost:8081 | grep "<title>" && echo PASSED || exit 1
-                '''
+                sh 'bash smoke-test.sh'
             }
         }
 
@@ -50,8 +52,10 @@ pipeline {
 
         stage('Cleanup') {
             steps {
-                sh 'docker stop dashboard || true'
-                sh 'docker rm dashboard || true'
+                sh """
+                docker stop $CONTAINER_NAME || true
+                docker rm $CONTAINER_NAME || true
+                """
             }
         }
     }
