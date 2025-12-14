@@ -34,7 +34,7 @@ pipeline {
                 script {
                     
                     def TAG_NAME = bat(
-                        script: "git describe --tags --exact-match",
+                        script: "git describe --tags --abbrev=0",
                         returnStdout: true
                     ).trim()
 
