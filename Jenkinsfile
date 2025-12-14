@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "vision-ui-dashboard"
-        PORT = "${PORT ?: 8081}"
+        PORT = "8081"
         CONTAINER_NAME = "dashboard-${BUILD_NUMBER}"
     }
 
@@ -24,23 +24,34 @@ pipeline {
 
         stage('Build') {
             steps {
-              bat 'npm install'
-               bat 'npm run build'
+                bat 'npm install'
+                bat 'npm run build'
             }
         }
 
         stage('Docker Build & Run') {
             steps {
-                bat """
-                docker build -t $IMAGE_NAME:${GIT_TAG_NAME ?: 'latest'} .
-                docker run -d -p $PORT:80 --name $CONTAINER_NAME $IMAGE_NAME:${GIT_TAG_NAME ?: 'latest'}
-                """
+                script {
+                    
+                    def TAG_NAME = bat(
+                        script: "git describe --tags --exact-match",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Building Docker image with tag: ${TAG_NAME}"
+
+                    bat """
+                    docker build -t %IMAGE_NAME%:${TAG_NAME} .
+                    docker run -d -p %PORT%:80 --name %CONTAINER_NAME% %IMAGE_NAME%:${TAG_NAME}
+                    """
+                }
             }
         }
 
         stage('Smoke Test') {
             steps {
-                bat 'bash smoke-test.sh'
+               
+                bat 'smoke-test.bat'
             }
         }
 
@@ -53,10 +64,11 @@ pipeline {
         stage('Cleanup') {
             steps {
                 bat """
-                docker stop $CONTAINER_NAME || true
-                docker rm $CONTAINER_NAME || true
+                docker stop %CONTAINER_NAME% || echo container not running
+                docker rm %CONTAINER_NAME% || echo container not found
                 """
             }
         }
     }
 }
+
