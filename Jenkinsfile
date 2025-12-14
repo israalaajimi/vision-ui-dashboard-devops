@@ -17,21 +17,21 @@ pipeline {
 
         stage('Setup') {
             steps {
-                sh 'node -v'
-                sh 'npm -v'
+                bat 'node -v'
+                bat 'npm -v'
             }
         }
 
         stage('Build') {
             steps {
-                sh 'npm install'
-                sh 'npm run build'
+              bat 'npm install'
+               bat 'npm run build'
             }
         }
 
         stage('Docker Build & Run') {
             steps {
-                sh """
+                bat """
                 docker build -t $IMAGE_NAME:${GIT_TAG_NAME ?: 'latest'} .
                 docker run -d -p $PORT:80 --name $CONTAINER_NAME $IMAGE_NAME:${GIT_TAG_NAME ?: 'latest'}
                 """
@@ -40,7 +40,7 @@ pipeline {
 
         stage('Smoke Test') {
             steps {
-                sh 'bash smoke-test.sh'
+                bat 'bash smoke-test.sh'
             }
         }
 
@@ -52,7 +52,7 @@ pipeline {
 
         stage('Cleanup') {
             steps {
-                sh """
+                bat """
                 docker stop $CONTAINER_NAME || true
                 docker rm $CONTAINER_NAME || true
                 """
